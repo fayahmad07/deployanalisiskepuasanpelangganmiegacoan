@@ -1,5 +1,8 @@
 streamlit
 pandas
+numpy
+scikit-learn
 nltk
 emoji
 Sastrawi
+joblib
