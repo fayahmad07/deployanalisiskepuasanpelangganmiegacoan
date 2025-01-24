@@ -2,8 +2,11 @@ import streamlit as st
 import pandas as pd
 import re
 import emoji
+import numpy as np
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from nltk.corpus import stopwords
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics.pairwise import euclidean_distances
 
 # Initialize Sastrawi stemmer
 factory = StemmerFactory()
@@ -57,9 +60,15 @@ def preprocess_text(text):
 
     return text
 
-# Sentiment extraction
-kata_positif = ['baik', 'bagus', 'luar biasa']
-kata_negatif = ['buruk', 'jelek', 'parah']
+# Sentiment extraction (no longer required for class denotation)
+kata_positif = ['baik','ramah','enak','mantap','nyaman','bagus','suka','rekomendasi','puas','lezat','murah','senang','biasa',
+                'sempurna','bersih','indah','cantik','keren','cepat','strategis','sesuai','ramai','keren','juara','kekinian',
+                'konsisten','efisien','luas','asik','sopan','hangat','dingim','cukup','lumayan','jelas','teliti','gurih','segar','nikmat',
+                'lengkap', 'percaya','hemat','pesona','senyum','padan','sahabat','primadona','nikmat']
+kata_negatif = ['kurang','kecewa','buruk','mahal','lama','amis','pelan','jelek','buruk','jijih','lamban','lelet','cukup',
+                'kotor','antre','payah','parkir','malas','hambar','aneh','lembek','kesal','jorok','lengket','zonk','lelucon',
+                'fiktif','ghaib','tipu','benci','sulit','parah','berisik','kacau','mual','salah']
+
 negasi = ["tidak", "bukan", "belum"]
 level = ["sangat", "cukup", "kurang", "luar"]
 
@@ -109,6 +118,14 @@ class_denotations = {
     0: "Moderate"
 }
 
+# Cluster centroids
+centroids = np.array([
+    [-0.38000445, -0.21278075,  0.38032496],
+    [-0.05463206, -1.5279502 , -2.4590711 ],
+    [ 2.01771611,  0.93361986, -0.85334513],
+    [ 0.10251419,  0.58638362,  0.36698813]
+])
+
 # Streamlit UI
 st.title("Sentiment Analysis and Class Mapping")
 
@@ -122,18 +139,29 @@ if uploaded_file:
     st.write("Preprocessing text...")
     df['comment_token'] = df['comment'].apply(preprocess_text)
 
-    # Sentiment extraction
-    st.write("Extracting sentiment...")
-    df[['sentimen word', 'sentimen']] = df['comment_token'].apply(lambda x: pd.Series(ekstrak_sentimen(x)))
+    # Sentiment extraction (removed this step for class mapping)
+    st.write("Extracting sentiment... (skipping sentiment processing as per request)")
 
-    # Calculate ratio and majority
-    df['ratio'] = df['sentimen'].apply(calculate_ratio)
-    df['sentimen_biner'] = df['sentimen'].apply(determine_majority)
+    # Calculate Euclidean distances from the comments' features to the cluster centroids
+    st.write("Calculating Euclidean distances to centroids...")
+    
+    # Assuming the comments are represented as vectors in a feature space (e.g., TF-IDF, word2vec, etc.)
+    # Here we simulate scaling the comment vectors with StandardScaler
+    # This is where you'd scale or embed the actual features from your comments (e.g., embeddings, TF-IDF, etc.)
+    from joblib import load
+    scaler = StandardScaler()
+    # Simulated scaled features (replace with actual data from text vectorization)
+    scaler = load('standardscaler.joblib')
+    scaled_features = scaler.fit_transform(df[["word_count", "sentimen_sum", "ratio"]])
+    # Compute distances
+    distances = euclidean_distances(scaled_features, centroids)
+    
+    # Assign the closest cluster based on the minimum distance
+    closest_clusters = np.argmin(distances, axis=1)
 
-    # Map class_denotation
-    st.write("Mapping class denotations...")
-    df['class_denotation'] = df['sentimen_biner'].map(class_denotations)
+    # Map class denotation based on the assigned cluster
+    df['class_denotation'] = [class_denotations.get(cluster, 'Unknown') for cluster in closest_clusters]
 
     # Display DataFrame
-    st.write("Processed DataFrame:")
+    st.write("Processed DataFrame with class denotations:")
     st.dataframe(df)
