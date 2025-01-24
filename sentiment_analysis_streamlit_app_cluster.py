@@ -20,7 +20,7 @@ def load_slang_dict(path):
                 slang_dict[key.strip()] = value.strip()
     return slang_dict
 
-slang_dict = load_slang_dict('slang_dict(2).txt')
+slang_dict = load_slang_dict('slang_dict (2).txt')
 
 # Preprocessing function
 def preprocess_text(text):
